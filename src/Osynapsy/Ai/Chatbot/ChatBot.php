@@ -19,6 +19,7 @@ class ChatBot extends Panel
     protected $stream = 0;
     protected $route;
     protected $classSendPrompt;
+    protected $sidebarEnabled = true;
 
     public function __construct(string $id, string $route, $rowClass = null, $cellClass = null, $tag = 'div')
     {
@@ -47,9 +48,10 @@ class ChatBot extends Panel
     {
         // Riga principale che si espande occupando tutto lo spazio verticale disponibile
         $row = $this->addRow()->addClass('row flex-grow-1 m-0 overflow-hidden');
-
-        // 1. Sidebar delle Chat (Sinistra)
-        $row->add($this->sideBarFactory());
+        if ($this->sidebarEnabled) {
+            // 1. Sidebar delle Chat (Sinistra)
+            $row->add($this->sideBarFactory());
+        }
 
         // 2. Area Principale della Chat / Workspace Dinamico (Destra)
         $row->add($this->mainAreaFactory());
@@ -110,12 +112,12 @@ class ChatBot extends Panel
         });
         return $msgBox;
     }
-    
+
     protected function userMessageFactory($content)
     {
         return (new Tag('div', null, 'message-text'))->add($content);
     }
-    
+
     protected function assistantMessageFactory($msg)
     {
         $dummy = new Tag('dummy');
@@ -128,10 +130,10 @@ class ChatBot extends Panel
 
     protected function messageReasoningFactory($reasoning)
     {
-        $thk = new Tag('div', null, 'chat-thought-box text-muted small mb-2 p-2 bg-light border-left border-primary rounded cursor-pointer');
+        $thk = new Tag('div', null, 'chat-thought-box text-muted small mb-2 p-2 bg-light border-left border-primary rounded');
         $thk->add(new Tag('i', null, 'fa fa-check text-success'));
         $thk->add('Ragionamento completato');
-        $thk->add(new Tag('small', null, 'text-info float-right'))->attribute('onclick', "this.nextElementSibling.classList.toggle('d-none')")->add('[Mostra]');
+        $thk->add(new Tag('small', null, 'text-info float-right cursor-pointer'))->attribute('onclick', "this.nextElementSibling.classList.toggle('d-none')")->add('[Mostra]');
         $thk->add(new Tag('div', null, 'thought-collapsed-content mt-2 p-2 bg-white border rounded small d-none message-text'))
             ->add($reasoning);
         return $thk;
@@ -221,6 +223,12 @@ class ChatBot extends Panel
     public function setActionSendPrompt(string $classActionSendPrompt)
     {
         $this->classSendPrompt = $classActionSendPrompt;
+        return $this;
+    }
+
+    public function sidebar(bool $show)
+    {
+        $this->sidebarEnabled = $show;
         return $this;
     }
 }
