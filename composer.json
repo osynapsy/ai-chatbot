@@ -1,0 +1,26 @@
+{
+    "name": "osynapsy/ai-chatbot",
+    "version": "0.1.0",
+    "homepage": "https://osynapsy.net/",
+    "type": "library",
+    "description": "Ai chatbot",
+    "keywords": ["Library","AI Chatbot"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Pietro Celeste",
+            "email": "p.celeste@osynapsy.net",
+            "homepage": "https://github.com/osynapsy/ai-chatbot/wiki"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "osynapsy/rest" : "1.0",
+        "osynapsy/osynapsy-html2" : "@stable"
+    },
+    "autoload" : {
+        "psr-4": {
+            "Osynapsy\\Ai\\Chatbot\\": "src/Osynapsy/Ai/Chatbot/"
+        }
+    }
+}
