@@ -1,4 +1,8 @@
-        /* Pannello principale della chat */
+.osy-chatbot {
+  height: calc(100vh - var(--chatbot-top, 0px) - var(--body-padding-bottom, 0px));
+}
+
+/* Pannello principale della chat */
 .chat-output-panel {
     overflow-y: auto;
     display: flex;
@@ -7,8 +11,7 @@
     padding: 20px;
     background-color: #f8f9fa;
     border-radius: 8px;
-    border: 1px solid #dee2e6;
-    height: calc(100vh - 250px);
+    border: 1px solid #dee2e6;    
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 

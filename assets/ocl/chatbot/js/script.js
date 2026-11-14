@@ -14,6 +14,7 @@ class ChatUI
         this.divThought = document.querySelector(this.divThoughtSelector);
         this.divContent = document.querySelector(this.divContentSelector);
         this.init();
+        this.updateHeight();
     }
 
     init()
@@ -29,7 +30,7 @@ class ChatUI
         this.panelChatMessages.scrollTo({
             top: this.panelChatMessages.scrollHeight,
             behavior: "smooth" // Rende lo scroll fluido
-        });
+        });                
          /*
             this.inputField.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -38,6 +39,17 @@ class ChatUI
             }
         });
         */
+    }
+    
+    updateHeight()
+    {
+        const cbot = this.panelChatMessages.closest('.osy-chatbot');
+        const rect = this.panelChatMessages.getBoundingClientRect();
+        const bodyStyles = window.getComputedStyle(document.body);
+        const paddingBottom = parseFloat(bodyStyles.getPropertyValue('padding-bottom')) || 0;
+        const posTop = rect.top;
+        cbot.style.setProperty('--chatbot-top', `${posTop}px`);
+        cbot.style.setProperty('--body-padding-bottom', `${paddingBottom}px`);
     }
 
     /**
@@ -251,5 +263,5 @@ document.addEventListener('DOMContentLoaded', function () {
         //divContentSelector : '#osy-chatbot-message-content',
         inputSelector: '#osy-chatbot-input',
         buttonSelector: '#osy-chatbot-input-send'
-    });
+    });    
 });
