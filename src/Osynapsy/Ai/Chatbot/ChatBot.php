@@ -66,7 +66,7 @@ class ChatBot extends Panel
     protected function sideBarFactory()
     {
         // Aggiunto h-100 per forzare la sidebar a riempire l'altezza della riga
-        $sidebar = new Tag('div', null, 'col-md-3 chat-sidebar border-right d-flex flex-column p-3 bg-white h-100');
+        $sidebar = new Tag('div', null, 'col-md-2 chat-sidebar border-right d-flex flex-column p-3 bg-white h-100');
         $sidebar->add($this->buttonNewChatFactory());
         $sidebar->add($this->panelChatListFactory());
         return $sidebar;
@@ -94,7 +94,7 @@ class ChatBot extends Panel
 
     protected function mainAreaFactory()
     {
-        $mainArea = new Tag('div', null, 'col-12 col-md-9 chat-main-workspace d-flex flex-column h-100 p-0 bg-light');
+        $mainArea = new Tag('div', null, 'col-12 col-md-10 chat-main-workspace d-flex flex-column h-100 p-0 bg-light');
         // Contenitore dei messaggi (occupa tutto lo spazio rimanente e attiva lo scroll)
         $mainArea->add($this->messagesAreaFactory());
         // Barra di input in basso (flessibile e protetta dalla compressione)
