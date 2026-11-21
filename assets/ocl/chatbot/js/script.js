@@ -177,9 +177,15 @@ class ChatUI
             });
         }
 
-        // Accumula e stampa la risposta reale
+        // 1. Accumula il testo grezzo in Markdown
         this.responseTextAccumulator += text;
-        this.responseDiv.querySelector('.response-text').textContent = this.responseTextAccumulator;
+        
+        // 2. Converte il Markdown in HTML pulito e sicuro
+        const rawHtml = marked.parse(this.responseTextAccumulator);
+        const cleanHtml = DOMPurify.sanitize(rawHtml);
+        
+        // 3. Usa innerHTML invece di textContent
+        this.responseDiv.querySelector('.response-text').innerHTML = cleanHtml;
         
         // Scroll automatico in basso
         this.panelChatMessages.scrollTop = this.panelChatMessages.scrollHeight;
@@ -253,6 +259,114 @@ class ChatUI
             this.panelChatMessages.innerHTML = '';
         }
     }
+    
+    /**
+    * Renderizza un comando UI (es. scheda di conferma con pulsanti) nella bolla dell'assistente
+    */
+    renderUiCommand(cmd) 
+    {
+        if (!this.currentAssistantBubble) {
+            this.createAssistantBubble();
+        }
+        if (typeof this.collapseThought === 'function') {
+            this.collapseThought();
+        }
+
+        if (cmd.type === 'confirm_card') {
+            const sendBtn    = document.getElementById('osy-chatbot-input-send');
+            const actionHash = sendBtn ? sendBtn.getAttribute('data-action') : '';
+            const isStream   = sendBtn ? (sendBtn.getAttribute('data-stream') || '1') : '1';
+            const hiddenId   = `${cmd.id}_prompt`;
+
+            const confirmPrompt = `CONFERMATO: procedi con '${cmd.action}' usando questi parametri: ${JSON.stringify(cmd.payload)}`;
+
+            // Costruisce i dettagli strutturati se è una mail, altrimenti usa summary
+            let detailsHtml = `<p class="small text-muted mb-3">${this.escapeHtml(cmd.summary)}</p>`;
+            if (cmd.action === 'mail.send' && cmd.payload) {
+                detailsHtml = `
+                    <div class="bg-light rounded p-2 mb-3 border small">
+                        <div class="mb-1">
+                            <span class="text-muted font-weight-bold">A:</span> 
+                            <span class="badge badge-light border text-dark">${this.escapeHtml(cmd.payload.to)}</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-muted font-weight-bold">Oggetto:</span> 
+                            <strong>${this.escapeHtml(cmd.payload.subject)}</strong>
+                        </div>
+                        <div class="border-top pt-2 text-secondary" style="white-space: pre-line; max-height: 110px; overflow-y: auto;">${this.escapeHtml(cmd.payload.body)}</div>
+                    </div>
+                `;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'card mt-3 border-0 shadow-sm ai-action-card';
+            card.style.borderLeft = '4px solid #007bff';
+            card.id = cmd.id;
+
+            card.innerHTML = `
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="card-title text-primary font-weight-bold mb-0">
+                            <i class="fa fa-paper-plane mr-2"></i>${this.escapeHtml(cmd.title)}
+                        </h6>
+                        <span class="badge badge-pill badge-light text-muted border">In attesa di conferma</span>
+                    </div>
+                    ${detailsHtml}
+                    <input type="hidden" id="${hiddenId}" value="${this.escapeHtml(confirmPrompt)}">
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-sm btn-light border mr-2 btn-ai-cancel">
+                            Annulla
+                        </button>
+                        <button type="button"
+                                id="${cmd.id}_btn"
+                                class="osy-component btn btn-sm btn-primary mask-closest click-execute btn-ai-confirm px-3"
+                                data-action="${actionHash}"
+                                data-action-parameters="#osy-chatbot-host,#osy-chatbot-model,#${hiddenId},#osy-chatbot-key,1"
+                                data-stream="${isStream}">
+                            <span style="pointer-events: none;">
+                                <i class="fa fa-check mr-1"></i> ${this.escapeHtml(cmd.confirm_label || 'Conferma')}
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Al click: trasforma subito la card in stato compatto "Confermato" e chiude la bolla
+            card.querySelector('.btn-ai-confirm').addEventListener('click', () => {
+                this.finalizeStream();
+                setTimeout(() => {
+                    card.style.borderLeftColor = '#28a745';
+                    card.querySelector('.card-body').innerHTML = `
+                        <div class="d-flex align-items-center text-success small font-weight-bold">
+                            <i class="fa fa-check-circle mr-2"></i>
+                            <span>${this.escapeHtml(cmd.title)} — Confermato dall'utente</span>
+                        </div>
+                    `;
+                }, 100);
+            });
+
+            // Al click su Annulla: compatta la card in stato annullato
+            card.querySelector('.btn-ai-cancel').addEventListener('click', () => {
+                card.style.borderLeftColor = '#dc3545';
+                card.querySelector('.card-body').innerHTML = `
+                    <div class="d-flex align-items-center text-muted small">
+                        <i class="fa fa-times-circle text-danger mr-2"></i>
+                        <span>${this.escapeHtml(cmd.title)} — Operazione annullata</span>
+                    </div>
+                `;
+            });
+
+            this.currentAssistantBubble.appendChild(card);
+            this.panelChatMessages.scrollTop = this.panelChatMessages.scrollHeight;
+        }
+    }
+
+   escapeHtml(str)
+   {
+       const div = document.createElement('div');
+       div.textContent = str ?? '';
+       return div.innerHTML;
+   }
 }
 
 document.addEventListener('DOMContentLoaded', function () {    

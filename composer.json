@@ -1,6 +1,6 @@
 {
     "name": "osynapsy/ai-chatbot",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "homepage": "https://osynapsy.net/",
     "type": "library",
     "description": "Ai chatbot",
@@ -16,7 +16,8 @@
     "require": {
         "php": ">=8.0",
         "osynapsy/rest" : "1.0",
-        "osynapsy/osynapsy-html2" : "@stable"
+        "osynapsy/osynapsy-html2" : "@stable",
+        "erusev/parsedown" : "@stable"
     },
     "autoload" : {
         "psr-4": {

@@ -57,6 +57,101 @@
 }
 
 .message-text {
-    word-break: break-word;
-    white-space: pre-wrap;    
+    /*word-break: break-word;
+    white-space: pre-wrap;    */
+}
+
+.chat-title {
+    padding: 2px 2px 2px 5px;
+}
+
+.chat-title:hover {
+    color: #333;
+    background-color: #eee;
+    border-radius: 5px;
+}
+
+.chat-title:hover > .delete-chat {
+    display: inline;
+}
+
+.chat-title > .delete-chat {
+    margin : 2px 5px 0px 0px;
+    display: none;
+}
+
+/* Rimuove il margine inferiore dell'ultimo paragrafo per non sbilanciare il padding della bolla */
+.assistant-message .response-text p:last-child {
+    margin-bottom: 0;
+}
+
+/* Stile per i blocchi di codice (es. query SQL o JSON) */
+.assistant-message .response-text pre {
+    background-color: #1e293b;
+    color: #f8fafc;
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 10px 0;
+    font-size: 0.85rem;
+}
+
+/* Codice inline (es. `tbl_doc`) */
+.assistant-message .response-text code {
+    background-color: #f1f5f9;
+    color: #e11d48;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.assistant-message .response-text pre code {
+    background-color: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+/* Tabelle generate dall'LLM (ottime per i report del gestionale) */
+.assistant-message .response-text table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 0.9rem;
+}
+
+.assistant-message .response-text th,
+.assistant-message .response-text td {
+    border: 1px solid #dee2e6;
+    padding: 6px 10px;
+    text-align: left;
+}
+
+.assistant-message .response-text th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+/* Riduce lo spazio verticale tra un paragrafo e l'altro nella risposta dell'AI */
+.assistant-message .response-text p {
+    margin-bottom: 0.1rem;
+    line-height: 1.5;
+}
+
+/* Toglie del tutto il margine all'ultimo elemento in fondo alla bolla */
+.assistant-message .response-text p:last-child,
+.assistant-message .response-text ul:last-child,
+.assistant-message .response-text ol:last-child {
+    margin-bottom: 0;
+}
+
+/* Compatta anche gli elenchi puntati (come i 3 link nello screenshot) */
+.assistant-message .response-text ul,
+.assistant-message .response-text ol {
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+    padding-left: 1.25rem;
+}
+
+.assistant-message .response-text li {
+    margin-bottom: 0.25rem;
 }

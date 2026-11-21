@@ -19,17 +19,22 @@ class ChatBot extends Panel
     protected $stream = 0;
     protected $route;
     protected $classSendPrompt;
+    protected $classDeleteChat;
     protected $sidebarEnabled = true;
+    protected $parsedown;
 
     public function __construct(string $id, string $route, $rowClass = null, $cellClass = null, $tag = 'div')
     {
         parent::__construct($id, $rowClass, $cellClass, $tag);
         $this->route = $route;
         $this->requireCss('ocl/chatbot/css/style.css');
+        $this->requireJs('ocl/chatbot/js/marked.min.js');
+        $this->requireJs('ocl/chatbot/js/purify.min.js');
         $this->requireJs('ocl/chatbot/js/script.js');
         // 1. Rendiamo il pannello principale un contenitore flex a tutta altezza
-        $this->addClass('container-fluid d-flex flex-column p-0 overflow-hidden');
-        $this->attribute('style', 'height: calc(100vh - 80px);');
+        $this->addClass('container-fluid d-flex flex-column p-0 overflow-hidden osy-chatbot');
+        $this->parsedown = new \Parsedown();
+        $this->parsedown->setSafeMode(true);
     }
 
     public function setModel($model) : static
@@ -73,11 +78,15 @@ class ChatBot extends Panel
 
     protected function panelChatListFactory()
     {
-        $Panel = new Panel('osy-chatbot-chat-list');
+        $Panel = new Panel('osy-chatbot-chat-list', 'chat-title', 'col', 'div');
         $Panel->addClass('chat-history-list flex-grow-1 overflow-auto');
         foreach($this->getModel()->getChats() as $rec) {
             $color = route()->getParameter(0) == $rec['id'] ? 'text-dark text-bold' : 'text-muted';
-            $Panel->addColumn()->add(new Link(false, route($this->route, [$rec['id']]), $rec['ttl'], 'text-nowrap text-truncate '.$color));
+            $row = $Panel->addRow();
+            $row->add(new Link(false, route($this->route, [$rec['id']]), $rec['ttl'], 'text-nowrap text-truncate '.$color));
+            if (!empty($this->classDeleteChat)) {
+                $row->add(new Link(false, false, '', 'delete-chat fa fa-trash float-right'))->setAction($this->classDeleteChat, [$rec['id']], sprintf('Sei sicuro di voler eliminare la chat "%s"', $rec['ttl']));
+            }
         }
         return $Panel;
     }
@@ -120,11 +129,13 @@ class ChatBot extends Panel
 
     protected function assistantMessageFactory($msg)
     {
+        $parsedown = new \Parsedown();
+        $parsedown->setSafeMode(true);
         $dummy = new Tag('dummy');
         if (!empty($msg['reasoning'])) {
-            $dummy->add($this->messageReasoningFactory($msg['reasoning']));
+            $dummy->add($this->messageReasoningFactory($this->parsedown ? $this->parsedown->text($msg['reasoning']) : $msg['reasoning']));
         }
-        $dummy->add($this->messageContentFactory($msg['content']));
+        $dummy->add($this->messageContentFactory($this->parsedown ? $this->parsedown->text($msg['content']) : $msg['content']));
         return $dummy;
     }
 
@@ -223,6 +234,12 @@ class ChatBot extends Panel
     public function setActionSendPrompt(string $classActionSendPrompt)
     {
         $this->classSendPrompt = $classActionSendPrompt;
+        return $this;
+    }
+
+    public function setActionDeleteChat(string $classActionDeleteChat)
+    {
+        $this->classDeleteChat = $classActionDeleteChat;
         return $this;
     }
 
