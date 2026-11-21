@@ -13,6 +13,8 @@ class ChatUI
         this.btnInputSend = document.querySelector(this.btnInputSendSelector);
         this.divThought = document.querySelector(this.divThoughtSelector);
         this.divContent = document.querySelector(this.divContentSelector);
+        this.container     = document.querySelector('.osynapsy-ai-chatbot-container');
+        this.workspacePane = document.querySelector('#osy-chatbot-workspace');
         this.init();
         this.updateHeight();
     }
@@ -159,7 +161,7 @@ class ChatUI
             // Creiamo un contenitore interno nascosto per il testo del pensiero vero e proprio
             const thoughtContentContainer = document.createElement('div');
             thoughtContentContainer.className = 'thought-collapsed-content mt-2 p-2 bg-white border rounded small d-none';
-            thoughtContentContainer.textContent = this.thoughtTextAccumulator;
+            thoughtContentContainer.textContent = marked.parse(this.thoughtTextAccumulator);
             
             // Aggiungiamo il testo nascosto dentro il blocco del pensiero
             this.thoughtDiv.appendChild(thoughtContentContainer);
@@ -263,7 +265,7 @@ class ChatUI
     /**
     * Renderizza un comando UI (es. scheda di conferma con pulsanti) nella bolla dell'assistente
     */
-    renderUiCommand(cmd) 
+    renderConfirm(cmd) 
     {
         if (!this.currentAssistantBubble) {
             this.createAssistantBubble();
@@ -271,94 +273,158 @@ class ChatUI
         if (typeof this.collapseThought === 'function') {
             this.collapseThought();
         }
-
-        if (cmd.type === 'confirm_card') {
-            const sendBtn    = document.getElementById('osy-chatbot-input-send');
-            const actionHash = sendBtn ? sendBtn.getAttribute('data-action') : '';
-            const isStream   = sendBtn ? (sendBtn.getAttribute('data-stream') || '1') : '1';
-            const hiddenId   = `${cmd.id}_prompt`;
-
-            const confirmPrompt = `CONFERMATO: procedi con '${cmd.action}' usando questi parametri: ${JSON.stringify(cmd.payload)}`;
-
-            // Costruisce i dettagli strutturati se è una mail, altrimenti usa summary
-            let detailsHtml = `<p class="small text-muted mb-3">${this.escapeHtml(cmd.summary)}</p>`;
-            if (cmd.action === 'mail.send' && cmd.payload) {
-                detailsHtml = `
-                    <div class="bg-light rounded p-2 mb-3 border small">
-                        <div class="mb-1">
-                            <span class="text-muted font-weight-bold">A:</span> 
-                            <span class="badge badge-light border text-dark">${this.escapeHtml(cmd.payload.to)}</span>
-                        </div>
-                        <div class="mb-2">
-                            <span class="text-muted font-weight-bold">Oggetto:</span> 
-                            <strong>${this.escapeHtml(cmd.payload.subject)}</strong>
-                        </div>
-                        <div class="border-top pt-2 text-secondary" style="white-space: pre-line; max-height: 110px; overflow-y: auto;">${this.escapeHtml(cmd.payload.body)}</div>
+        
+        const sendBtn    = document.getElementById('osy-chatbot-input-send');
+        const actionHash = sendBtn ? sendBtn.getAttribute('data-action') : '';
+        const isStream   = sendBtn ? (sendBtn.getAttribute('data-stream') || '1') : '1';
+        const hiddenId   = `${cmd.id}_prompt`;
+        const confirmPrompt = `CONFERMATO: procedi con '${cmd.action}' usando questi parametri: ${JSON.stringify(cmd.payload)}`;
+        // Costruisce i dettagli strutturati se è una mail, altrimenti usa summary
+        let detailsHtml = `<p class="small text-muted mb-3">${this.escapeHtml(cmd.summary)}</p>`;
+        if (cmd.action === 'mail.send' && cmd.payload) {
+            detailsHtml = `
+                <div class="bg-light rounded p-2 mb-3 border small">
+                    <div class="mb-1">
+                        <span class="text-muted font-weight-bold">A:</span> 
+                        <span class="badge badge-light border text-dark">${this.escapeHtml(cmd.payload.to)}</span>
                     </div>
-                `;
-            }
-
-            const card = document.createElement('div');
-            card.className = 'card mt-3 border-0 shadow-sm ai-action-card';
-            card.style.borderLeft = '4px solid #007bff';
-            card.id = cmd.id;
-
-            card.innerHTML = `
-                <div class="card-body p-3">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <h6 class="card-title text-primary font-weight-bold mb-0">
-                            <i class="fa fa-paper-plane mr-2"></i>${this.escapeHtml(cmd.title)}
-                        </h6>
-                        <span class="badge badge-pill badge-light text-muted border">In attesa di conferma</span>
+                    <div class="mb-2">
+                        <span class="text-muted font-weight-bold">Oggetto:</span> 
+                        <strong>${this.escapeHtml(cmd.payload.subject)}</strong>
                     </div>
-                    ${detailsHtml}
-                    <input type="hidden" id="${hiddenId}" value="${this.escapeHtml(confirmPrompt)}">
-                    <div class="d-flex justify-content-end">
-                        <button type="button" class="btn btn-sm btn-light border mr-2 btn-ai-cancel">
-                            Annulla
-                        </button>
-                        <button type="button"
-                                id="${cmd.id}_btn"
-                                class="osy-component btn btn-sm btn-primary mask-closest click-execute btn-ai-confirm px-3"
-                                data-action="${actionHash}"
-                                data-action-parameters="#osy-chatbot-host,#osy-chatbot-model,#${hiddenId},#osy-chatbot-key,1"
-                                data-stream="${isStream}">
-                            <span style="pointer-events: none;">
-                                <i class="fa fa-check mr-1"></i> ${this.escapeHtml(cmd.confirm_label || 'Conferma')}
-                            </span>
-                        </button>
-                    </div>
+                    <div class="border-top pt-2 text-secondary" style="white-space: pre-line; max-height: 110px; overflow-y: auto;">${this.escapeHtml(cmd.payload.body)}</div>
                 </div>
             `;
+        }
 
-            // Al click: trasforma subito la card in stato compatto "Confermato" e chiude la bolla
-            card.querySelector('.btn-ai-confirm').addEventListener('click', () => {
-                this.finalizeStream();
-                setTimeout(() => {
-                    card.style.borderLeftColor = '#28a745';
-                    card.querySelector('.card-body').innerHTML = `
-                        <div class="d-flex align-items-center text-success small font-weight-bold">
-                            <i class="fa fa-check-circle mr-2"></i>
-                            <span>${this.escapeHtml(cmd.title)} — Confermato dall'utente</span>
-                        </div>
-                    `;
-                }, 100);
-            });
+        const card = document.createElement('div');
+        card.className = 'card mt-3 border-0 shadow-sm ai-action-card';
+        card.style.borderLeft = '4px solid #007bff';
+        card.id = cmd.id;
 
-            // Al click su Annulla: compatta la card in stato annullato
-            card.querySelector('.btn-ai-cancel').addEventListener('click', () => {
-                card.style.borderLeftColor = '#dc3545';
+        card.innerHTML = `
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="card-title text-primary font-weight-bold mb-0">
+                        <i class="fa fa-paper-plane mr-2"></i>${this.escapeHtml(cmd.title)}
+                    </h6>
+                    <span class="badge badge-pill badge-light text-muted border">In attesa di conferma</span>
+                </div>
+                ${detailsHtml}
+                <input type="hidden" id="${hiddenId}" value="${this.escapeHtml(confirmPrompt)}">
+                <div class="d-flex justify-content-end">
+                    <button type="button" class="btn btn-sm btn-light border mr-2 btn-ai-cancel">
+                        Annulla
+                    </button>
+                    <button type="button"
+                            id="${cmd.id}_btn"
+                            class="osy-component btn btn-sm btn-primary mask-closest click-execute btn-ai-confirm px-3"
+                            data-action="${actionHash}"
+                            data-action-parameters="#osy-chatbot-host,#osy-chatbot-model,#${hiddenId},#osy-chatbot-key,1"
+                            data-stream="${isStream}">
+                        <span style="pointer-events: none;">
+                            <i class="fa fa-check mr-1"></i> ${this.escapeHtml(cmd.confirm_label || 'Conferma')}
+                        </span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Al click: trasforma subito la card in stato compatto "Confermato" e chiude la bolla
+        card.querySelector('.btn-ai-confirm').addEventListener('click', () => {
+            this.finalizeStream();
+            setTimeout(() => {
+                card.style.borderLeftColor = '#28a745';
                 card.querySelector('.card-body').innerHTML = `
-                    <div class="d-flex align-items-center text-muted small">
-                        <i class="fa fa-times-circle text-danger mr-2"></i>
-                        <span>${this.escapeHtml(cmd.title)} — Operazione annullata</span>
+                    <div class="d-flex align-items-center text-success small font-weight-bold">
+                        <i class="fa fa-check-circle mr-2"></i>
+                        <span>${this.escapeHtml(cmd.title)} — Confermato dall'utente</span>
                     </div>
                 `;
-            });
+            }, 100);
+        });
 
-            this.currentAssistantBubble.appendChild(card);
-            this.panelChatMessages.scrollTop = this.panelChatMessages.scrollHeight;
+        // Al click su Annulla: compatta la card in stato annullato
+        card.querySelector('.btn-ai-cancel').addEventListener('click', () => {
+            card.style.borderLeftColor = '#dc3545';
+            card.querySelector('.card-body').innerHTML = `
+                <div class="d-flex align-items-center text-muted small">
+                    <i class="fa fa-times-circle text-danger mr-2"></i>
+                    <span>${this.escapeHtml(cmd.title)} — Operazione annullata</span>
+                </div>
+            `;
+        });
+
+        this.currentAssistantBubble.appendChild(card);
+        this.panelChatMessages.scrollTop = this.panelChatMessages.scrollHeight;               
+    }
+
+    notify(message, level = 'info')
+    {
+        if (!this.currentAssistantBubble) {
+            this.createAssistantBubble();
         }
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${level} py-2 px-3 mt-2 mb-1 small shadow-sm`;
+        alert.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${this.escapeHtml(message)}`;
+        this.currentAssistantBubble.appendChild(alert);
+        this.panelChatMessages.scrollTop = this.panelChatMessages.scrollHeight;
+    }
+
+    /**
+     * 3. Apre/aggiorna il pannello operativo destro in split-view (chiamato da Ui\Workspace)
+     */
+    openWorkspace(title, htmlContent = '') 
+    {
+        if (!this.container || !this.workspacePane) return;
+        this.container.classList.add('active-split-view');
+        this.workspacePane.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center pb-2 mb-3 border-bottom">
+                <h5 class="mb-0 text-primary">${this.escapeHtml(title)}</h5>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.myAiChat.closeWorkspace()">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            ${htmlContent}
+        `;
+    }
+
+    /**
+     * 4. Chiude il pannello operativo destro (chiamato da Ui\Workspace)
+     */
+    closeWorkspace() 
+    {
+        if (!this.container) return;
+        this.container.classList.remove('active-split-view');
+        if (this.workspacePane) {
+            this.workspacePane.innerHTML = '';
+        }
+    }
+
+    /**
+     * 5. Navigazione o apertura scheda gestionale (chiamato da Ui\Redirect)
+     */
+    redirect(url, target = '_blank') 
+    {
+        if (target === '_self') {
+            window.location.href = url;
+        } else {
+            window.open(url, '_blank');
+        }
+    }
+
+    /**
+     * 6. Compilazione campi di un form Osynapsy nella pagina (chiamato da Ui\FillForm)
+     */
+    fillForm(fields = {}) 
+    {
+        Object.entries(fields).forEach(([fieldId, value]) => {
+            const el = document.getElementById(fieldId);
+            if (el) {
+                el.value = value;
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
     }
 
    escapeHtml(str)

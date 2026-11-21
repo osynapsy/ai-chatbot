@@ -52,7 +52,7 @@ class ChatBot extends Panel
     protected function buildUI(): void
     {
         // Riga principale che si espande occupando tutto lo spazio verticale disponibile
-        $row = $this->addRow()->addClass('row flex-grow-1 m-0 overflow-hidden');
+        $row = $this->addRow()->addClass('flex-grow-1 m-0 overflow-hidden osynapsy-ai-chatbot-container');
         if ($this->sidebarEnabled) {
             // 1. Sidebar delle Chat (Sinistra)
             $row->add($this->sideBarFactory());
@@ -60,6 +60,7 @@ class ChatBot extends Panel
 
         // 2. Area Principale della Chat / Workspace Dinamico (Destra)
         $row->add($this->mainAreaFactory());
+        $row->add($this->workspacePaneFactory());
     }
 
     protected function sideBarFactory()
@@ -223,6 +224,11 @@ class ChatBot extends Panel
             $Button->attribute('data-stream', 1);
         }
         return $Button;
+    }
+
+    protected function workspacePaneFactory()
+    {
+        return new Tag('div', 'osy-chatbot-workspace', 'dynamic-workspace-pane p-4 border-left bg-white');
     }
 
     public function setStream(bool $v)

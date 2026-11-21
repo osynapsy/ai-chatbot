@@ -155,3 +155,28 @@
 .assistant-message .response-text li {
     margin-bottom: 0.25rem;
 }
+
+.osynapsy-ai-chatbot-container .chat-main-workspace {
+    transition: flex 0.25s ease, max-width 0.25s ease;
+}
+
+.osynapsy-ai-chatbot-container .dynamic-workspace-pane {
+    display: none;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.osynapsy-ai-chatbot-container.active-split-view .chat-sidebar {
+    display: none !important;
+}
+
+.osynapsy-ai-chatbot-container.active-split-view .chat-main-workspace {
+    flex: 0 0 48% !important;
+    max-width: 48% !important;
+}
+
+.osynapsy-ai-chatbot-container.active-split-view .dynamic-workspace-pane {
+    display: block;
+    flex: 0 0 52% !important;
+    max-width: 52% !important;
+}
