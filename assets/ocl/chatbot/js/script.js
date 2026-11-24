@@ -140,27 +140,7 @@ class ChatUI
         this.attachedImages.splice(index, 1);
         this.syncImagesInput();
         this.renderImagePreviews();
-    }
-
-    /**
-     * Metodo pubblico per inviare un messaggio
-     */
-    /*sendMessage(customText = null) 
-    {         
-        const text = customText || this.inputField.value.trim();
-        if (!text) return;
-
-        this.appendMessage('user', text);
-        if (!customText && this.inputField) {
-            //setTimeout(() => {this.inputField.value = ''}, 1000);
-        }
-        this.currentAssistantBubble = null;
-        this.thoughtDiv = null;
-        this.responseDiv = null;
-        this.thoughtTextAccumulator = '';
-        this.responseTextAccumulator = '';
-        this.isThinkingActive = true;
-    }*/
+    }   
 
     /**
      * Aggiorna sendMessage() per mostrare le miniature anche nella bolla utente e pulire l'allegato dopo l'invio
@@ -306,7 +286,7 @@ class ChatUI
             // Creiamo un contenitore interno nascosto per il testo del pensiero vero e proprio
             const thoughtContentContainer = document.createElement('div');
             thoughtContentContainer.className = 'thought-collapsed-content mt-2 p-2 bg-white border rounded small d-none';
-            thoughtContentContainer.textContent = marked.parse(this.thoughtTextAccumulator);
+            thoughtContentContainer.innerHTML =  this.markedPurifyText(this.thoughtTextAccumulator);
             
             // Aggiungiamo il testo nascosto dentro il blocco del pensiero
             this.thoughtDiv.appendChild(thoughtContentContainer);
@@ -325,17 +305,20 @@ class ChatUI
         }
 
         // 1. Accumula il testo grezzo in Markdown
-        this.responseTextAccumulator += text;
-        
-        // 2. Converte il Markdown in HTML pulito e sicuro
-        const rawHtml = marked.parse(this.responseTextAccumulator);
-        const cleanHtml = DOMPurify.sanitize(rawHtml);
-        
+        this.responseTextAccumulator += text;                                
         // 3. Usa innerHTML invece di textContent
-        this.responseDiv.querySelector('.response-text').innerHTML = cleanHtml;
+        this.responseDiv.querySelector('.response-text').innerHTML = this.markedPurifyText(this.responseTextAccumulator);
         
         // Scroll automatico in basso
         this.panelChatMessages.scrollTop = this.panelChatMessages.scrollHeight;
+    }
+    
+    // Converte il Markdown in HTML pulito e sicuro
+    markedPurifyText(txt)
+    {
+        const rawHtml = marked.parse(txt);
+        const cleanHtml = DOMPurify.sanitize(rawHtml);
+        return cleanHtml;
     }
     
     /**
