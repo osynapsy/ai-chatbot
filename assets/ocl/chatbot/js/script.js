@@ -15,6 +15,9 @@ class ChatUI
         this.divContent = document.querySelector(this.divContentSelector);
         this.container     = document.querySelector('.osynapsy-ai-chatbot-container');
         this.workspacePane = document.querySelector('#osy-chatbot-workspace');
+        this.attachedImages     = []; // Array di stringhe Base64 pure (senza prefisso data:image/...)
+        this.imagePreviewBox    = document.querySelector(options.imagePreviewSelector || '#osy-chatbot-image-previews');
+        this.hiddenImagesInput  = document.querySelector(options.hiddenImagesSelector || '#osy-chatbot-images');
         this.init();
         this.updateHeight();
     }
@@ -32,7 +35,9 @@ class ChatUI
         this.panelChatMessages.scrollTo({
             top: this.panelChatMessages.scrollHeight,
             behavior: "smooth" // Rende lo scroll fluido
-        });                
+        });
+        // Intercetta Ctrl+V / Cmd+V sulla textarea del prompt
+        this.inputField.addEventListener('paste', (e) => this.handlePaste(e));
          /*
             this.inputField.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -54,10 +59,93 @@ class ChatUI
         cbot.style.setProperty('--body-padding-bottom', `${paddingBottom}px`);
     }
 
+/**
+     * Gestisce l'incolla di immagini dagli appunti (Ctrl+V)
+     */
+    handlePaste(e)
+    {        
+        const items = (e.clipboardData || window.clipboardData)?.items;
+        if (!items) return;
+
+        for (const item of items) {
+                    console.log(item);
+            if (item.type.startsWith('image/')) {
+                e.preventDefault(); // Evita di incollare eventuale testo spazzatura
+                const file = item.getAsFile();
+                if (file) {
+                    this.processImageFile(file);
+                }
+            }
+        }
+    }
+
+    /**
+     * Converte il File in Base64, aggiorna l'input nascosto per Osynapsy e disegna la miniatura
+     */
+    processImageFile(file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const dataUrl = event.target.result; // "data:image/png;base64,iVBORw0KGgo..."
+            // Ollama vuole il Base64 puro senza intestazione MIME
+            const pureBase64 = dataUrl.split(',')[1];
+
+            this.attachedImages.push({
+                dataUrl: dataUrl,
+                base64: pureBase64
+            });
+
+            this.syncImagesInput();
+            this.renderImagePreviews();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    /**
+     * Sincronizza l'input nascosto letto da data-action-parameters di Osynapsy
+     */
+    syncImagesInput() {
+        if (!this.hiddenImagesInput) return;
+        const onlyBase64 = this.attachedImages.map(img => img.base64);
+        this.hiddenImagesInput.value = onlyBase64.length > 0 ? JSON.stringify(onlyBase64) : '';
+    }
+    
+    /**
+     * Mostra le miniature delle immagini incollate sopra la textarea con pulsante rimuovi (×)
+     */
+    renderImagePreviews() {
+        if (!this.imagePreviewBox) return;
+
+        if (this.attachedImages.length === 0) {
+            this.imagePreviewBox.innerHTML = '';
+            this.imagePreviewBox.classList.add('d-none');
+            return;
+        }
+
+        this.imagePreviewBox.classList.remove('d-none');
+        this.imagePreviewBox.innerHTML = this.attachedImages.map((img, idx) => `
+            <div class="position-relative d-inline-block mr-2 mb-2">
+                <img src="${img.dataUrl}" class="rounded border shadow-sm" style="height: 64px; width: auto; object-fit: cover;">
+                <button type="button"
+                        class="btn btn-danger btn-sm rounded-circle position-absolute d-flex align-items-center justify-content-center"
+                        style="top: -6px; right: -6px; width: 20px; height: 20px; padding: 0; font-size: 11px;"
+                        onclick="window.myAiChat.removeAttachedImage(${idx})"
+                        title="Rimuovi immagine">
+                    &times;
+                </button>
+            </div>
+        `).join('');
+    }
+
+    removeAttachedImage(index) {
+        this.attachedImages.splice(index, 1);
+        this.syncImagesInput();
+        this.renderImagePreviews();
+    }
+
     /**
      * Metodo pubblico per inviare un messaggio
      */
-    sendMessage(customText = null) 
+    /*sendMessage(customText = null) 
     {         
         const text = customText || this.inputField.value.trim();
         if (!text) return;
@@ -72,7 +160,64 @@ class ChatUI
         this.thoughtTextAccumulator = '';
         this.responseTextAccumulator = '';
         this.isThinkingActive = true;
+    }*/
+
+    /**
+     * Aggiorna sendMessage() per mostrare le miniature anche nella bolla utente e pulire l'allegato dopo l'invio
+     */
+    sendMessage(customText = null)
+    {
+        const text = customText || this.inputField.value.trim();
+        const hasImages = this.attachedImages.length > 0;
+
+        if (!text && !hasImages) return;
+
+        this.finalizeStream();
+
+        // Mostra il messaggio + eventuali miniature nella bolla dell'utente
+        const imagesSnapshot = [...this.attachedImages];
+        this.appendUserMessageWithImages(text, imagesSnapshot);
+
+        if (!customText) {
+            setTimeout(() => {
+                //if (this.inputField) this.inputField.value = '';
+                this.attachedImages = [];
+                this.syncImagesInput();
+                this.renderImagePreviews();
+            }, 80); // Piccolo delay per dare tempo a Osynapsy di leggere #osy-chatbot-images al click
+        }
     }
+
+    appendUserMessageWithImages(text, images = [])
+    {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'chat-message user-message';
+
+        if (images.length > 0) {
+            const imgWrap = document.createElement('div');
+            imgWrap.className = 'mb-2 d-flex flex-wrap gap-2';
+            images.forEach(img => {
+                const el = document.createElement('img');
+                el.src = img.dataUrl;
+                el.className = 'rounded border';
+                el.style.maxHeight = '160px';
+                el.style.maxWidth = '100%';
+                imgWrap.appendChild(el);
+            });
+            msgDiv.appendChild(imgWrap);
+        }
+
+        if (text) {
+            const textSpan = document.createElement('div');
+            textSpan.textContent = text;
+            msgDiv.appendChild(textSpan);
+        }
+
+        this.panelChatMessages.appendChild(msgDiv);
+        this.panelChatMessages.scrollTop = this.panelChatMessages.scrollHeight;
+        return msgDiv;
+    }
+    
 
     /**
      * Metodo pubblico per aggiungere un messaggio a schermo

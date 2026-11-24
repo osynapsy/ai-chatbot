@@ -7,6 +7,7 @@ use Osynapsy\Html\Component\Link;
 use Osynapsy\Html\Component\ComboBox;
 use Osynapsy\Html\Component\TextArea;
 use Osynapsy\Html\Tag;
+use Osynapsy\Ai\Tools\ToolCall;
 
 /**
  * Description of PanelMain
@@ -117,15 +118,33 @@ class ChatBot extends Panel
     {
         $msgBox = new Tag('div', null, "chat-message {$msg['role']}-message");
         $msgBox->add(match($msg['role']) {
-            'user' => $this->userMessageFactory($msg['content']),
+            'user' => $this->userMessageFactory($msg['content'], $msg['images'] ?? null),
             default => $this->assistantMessageFactory($msg)
         });
         return $msgBox;
     }
 
-    protected function userMessageFactory($content)
+    protected function userMessageFactory($content, $images)
     {
-        return (new Tag('div', null, 'message-text'))->add($content);
+        $dummy = new Tag('dummy');
+        if (!empty($images)) {
+            $dummy->add($this->userImageFactory($images));
+        }
+        $dummy->Add((new Tag('div', null, 'message-text'))->add($content));
+        return $dummy;
+    }
+
+    protected function userImageFactory($rawimages)
+    {
+        $images = unserialize($rawimages);
+        $dummy = new Tag('dummy');
+        foreach($images as $image) {
+            $dummy->add(new Tag('div', null, 'mb-2 d-flex flex-wrap gap-2'))
+                  ->add(new Tag('img', null, 'rounded border'))
+                  ->attribute('style', "max-height: 160px; max-width: 100%")
+                  ->attribute('src', $image->getWebPath());
+        }
+        return $dummy;
     }
 
     protected function assistantMessageFactory($msg)
@@ -136,7 +155,7 @@ class ChatBot extends Panel
         if (!empty($msg['reasoning'])) {
             $dummy->add($this->messageReasoningFactory($this->parsedown ? $this->parsedown->text($msg['reasoning']) : $msg['reasoning']));
         }
-        $dummy->add($this->messageContentFactory($this->parsedown ? $this->parsedown->text($msg['content']) : $msg['content']));
+        $dummy->add($this->messageContentFactory($this->parsedown ? $this->parsedown->text($msg['content']) : $msg['content'], $msg['tool_calls'] ?? null));
         return $dummy;
     }
 
@@ -151,18 +170,46 @@ class ChatBot extends Panel
         return $thk;
     }
 
-    protected function messageContentFactory($content)
+    protected function messageContentFactory($content, $toolCalls)
     {
         $cnt = new Tag('div', null, 'chat-response-box');
-        $cnt->add(new Tag('div', null, 'response-text message-text'))->add($content);
+        $txt = $cnt->add(new Tag('div', null, 'response-text message-text'));
+        $txt->add($content);
+        if (!empty($toolCalls)) {
+            $txt->add($this->messageToolCallFactory($toolCalls));
+        }
         return $cnt;
+    }
+
+    protected function messageToolCallFactory($strToolCall)
+    {
+        $dummy = new Tag('dummy');
+        $toolCall = unserialize($strToolCall);
+        if (in_array($toolCall->getTool(), ['ui.workspace', 'ui_workspace'])) {
+             $arg = $toolCall->getArguments();
+             $dummy->add(new Tag('a'))->setHref('javascript:void(0)')->setOnclick("myAiChat.openWorkspace('{$arg['title']}', this.nextElementSibling.innerHTML);")->add($arg['title']);
+             $dummy->add(new Tag('div', null, 'd-none'))->add($arg['html']);
+        }
+        return $dummy;
     }
 
     protected function inputAreaFactory()
     {
         $inputArea = new Tag('div', null, 'chat-input-bar p-3 border-top bg-white flex-shrink-0');
+        $inputArea->add($this->imagesAreaFactory());
         $inputArea->add($this->formFactory());
         return $inputArea;
+    }
+
+    protected function imagesAreaFactory()
+    {
+        $dummy = new Tag('dummy');
+        $dummy->add(new Tag('div', 'osy-chatbot-image-previews', 'px-3 pt-2 d-none'));
+        $hiddenImages = new Tag('input', 'osy-chatbot-images');
+        $hiddenImages->attribute('type', 'hidden');
+        $hiddenImages->attribute('name', 'osy-chatbot-images');
+        $dummy->add($hiddenImages);
+        return $dummy;
     }
 
     protected function formFactory()
@@ -219,7 +266,7 @@ class ChatBot extends Panel
     {
         $Button = new Button('osy-chatbot-input-send', '<i class="fa fa-arrow-up"></i>', 'btn-primary btn-sm rounded-circle mask-closest');
         $Button->attribute('style', 'width: 38px; height: 38px; flex-shrink: 0;');
-        $Button->setAction($this->classSendPrompt, ['#osy-chatbot-host', '#osy-chatbot-model', '#osy-chatbot-input', '#osy-chatbot-key', $this->stream]);
+        $Button->setAction($this->classSendPrompt, ['#osy-chatbot-host', '#osy-chatbot-model', '#osy-chatbot-input', '#osy-chatbot-images', '#osy-chatbot-key', $this->stream]);
         if ($this->stream) {
             $Button->attribute('data-stream', 1);
         }
