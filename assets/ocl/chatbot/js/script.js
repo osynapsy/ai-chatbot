@@ -448,7 +448,7 @@ class ChatUI
                             id="${cmd.id}_btn"
                             class="osy-component btn btn-sm btn-primary mask-closest click-execute btn-ai-confirm px-3"
                             data-action="${actionHash}"
-                            data-action-parameters="#osy-chatbot-host,#osy-chatbot-model,#${hiddenId},#osy-chatbot-key,1"
+                            data-action-parameters="#osy-chatbot-host,#osy-chatbot-model,#${hiddenId},#osy-chatbot-images,#osy-chatbot-key,1"
                             data-stream="${isStream}">
                         <span style="pointer-events: none;">
                             <i class="fa fa-check mr-1"></i> ${this.escapeHtml(cmd.confirm_label || 'Conferma')}
