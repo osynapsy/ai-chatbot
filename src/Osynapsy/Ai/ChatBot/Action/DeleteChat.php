@@ -3,7 +3,7 @@ namespace Osynapsy\Ai\ChatBot\Action;
 
 use Osynapsy\Action\AbstractAction;
 use Osynapsy\Assert\Assertion;
-use Spinit\Erp\Lib\Models\AiChat;
+use Osynapsy\Ai\ChatBot\Model\AiChat;
 
 /**
  * Description of DeleteChat
