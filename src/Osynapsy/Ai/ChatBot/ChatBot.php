@@ -1,5 +1,5 @@
 <?php
-namespace Osynapsy\Ai\Chatbot;
+namespace Osynapsy\Ai\ChatBot;
 
 use Osynapsy\Html\Component\Panel;
 use Osynapsy\Html\Component\Button;
@@ -7,7 +7,6 @@ use Osynapsy\Html\Component\Link;
 use Osynapsy\Html\Component\ComboBox;
 use Osynapsy\Html\Component\TextArea;
 use Osynapsy\Html\Tag;
-use Osynapsy\Ai\Tools\ToolCall;
 
 /**
  * Description of PanelMain

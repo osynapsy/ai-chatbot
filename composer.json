@@ -1,6 +1,6 @@
 {
     "name": "osynapsy/ai-chatbot",
-    "version": "0.1.1",
+    "version": "0.2",
     "homepage": "https://osynapsy.net/",
     "type": "library",
     "description": "Ai chatbot",
@@ -21,7 +21,7 @@
     },
     "autoload" : {
         "psr-4": {
-            "Osynapsy\\Ai\\Chatbot\\": "src/Osynapsy/Ai/Chatbot/"
+            "Osynapsy\\Ai\\ChatBot\\": "src/Osynapsy/Ai/ChatBot/"
         }
     }
 }
